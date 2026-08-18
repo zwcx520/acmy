@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阿聪木鱼</title>
+    <style>
+        /* 全局重置与基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* 防止双击选中文本 */
+            -webkit-tap-highlight-color: transparent; /* 移除移动端点击高亮 */
+        }
+
+        body {
+            background-color: #121212;
+            color: #FFFFFF;
+            font-family: 'PingFang SC', 'Kaiti SC', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between; /* 垂直分布：顶、中、底 */
+            overflow: hidden;
+            padding: 20px 0;
+        }
+
+        /* 顶部标题区 */
+        .header {
+            text-align: center;
+            margin-top: 2vh;
+            position: relative;
+        }
+
+        /* 主标题：渐变文字 */
+        .main-title {
+            font-family: 'Kaiti SC', serif;
+            font-size: 25vw;
+            line-height: 1;
+            background: linear-gradient(180deg, rgba(255, 176, 103, 0.05) 0%, rgba(115, 55, 0, 0.02) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            /* 增加一点文字阴影以确保在深色背景下的微弱可见性，虽然原需求是极淡的渐变 */
+            text-shadow: 0 0 1px rgba(255, 255, 255, 0.1); 
+        }
+
+        /* 计分器区域 */
+        .score-container {
+            margin-top: -2vh; /* 稍微拉近与标题的距离 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-value {
+            font-family: 'PingFang SC', sans-serif;
+            font-size: 10vh;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .score-label {
+            font-family: 'PingFang SC', sans-serif;
+            font-size: 5vh;
+            opacity: 0.8;
+        }
+
+        /* 中央木鱼点击区 */
+        .muyu-area {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        /* 木鱼图片 */
+        .muyu-img {
+            width: 200px; /* 根据实际图片比例调整，保持美观 */
+            transition: transform 0.1s ease-out;
+            z-index: 1;
+        }
+
+        /* 锤子图片 */
+        .hammer-img {
+            position: absolute;
+            width: 80px;
+            top: 20%; /* 相对于木鱼区域的位置 */
+            right: 10%; /* 固定在右上角 */
+            transform-origin: bottom left; /* 旋转支点设在手柄底部 */
+            transition: transform 0.1s ease-out;
+            z-index: 2;
+            pointer-events: none; /* 让点击穿透到木鱼区域 */
+        }
+
+        /* 底部提示文字 */
+        .footer {
+            font-family: 'Kaiti SC', serif;
+            font-size: 1.2em;
+            text-align: center;
+            opacity: 0.6;
+            margin-bottom: 5vh;
+            letter-spacing: 2px;
+        }
+
+        /* 动态漂浮字幕 "功德+1" */
+        .floating-text {
+            position: absolute;
+            font-family: 'PingFang SC', sans-serif;
+            font-size: 1.5em;
+            color: #fff;
+            pointer-events: none;
+            animation: floatUp 0.4s ease-out forwards;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        /* 动画定义 */
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px) scale(1.2);
+            }
+        }
+
+        /* 点击时的类状态 */
+        .muyu-active {
+            transform: scale(1.1);
+        }
+
+        .hammer-active {
+            transform: rotate(-25deg);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部：标题与分数 -->
+    <div class="header">
+        <div class="main-title">阿聪木鱼</div>
+        <div class="score-container">
+            <div class="score-value" id="score">0</div>
+            <div class="score-label">功德</div>
+        </div>
+    </div>
+
+    <!-- 中部：木鱼与锤子 -->
+    <div class="muyu-area" id="muyuContainer">
+        <!-- 木鱼图片 -->
+        <img src="O1CN012CO0YU1VSfNs506ZS_!!6000000002652-2-tps-284-236.png" alt="木鱼" class="muyu-img" id="muyuImg">
+        <!-- 锤子图片 -->
+        <img src="O1CN01tKb5Et1aSjWRjCHK3_!!6000000003329-2-tps-119-69.png" alt="锤子" class="hammer-img" id="hammerImg">
+    </div>
+
+    <!-- 底部：提示语 -->
+    <div class="footer">
+        轻敲木鱼，参悟人生真谛！
+    </div>
+
+    <!-- 音效资源 -->
+    <audio id="clickSound" src="qiaomuyu.mp3" preload="auto"></audio>
+
+    <script>
+        // 获取DOM元素
+        const muyuContainer = document.getElementById('muyuContainer');
+        const muyuImg = document.getElementById('muyuImg');
+        const hammerImg = document.getElementById('hammerImg');
+        const scoreDisplay = document.getElementById('score');
+        const clickSound = document.getElementById('clickSound');
+
+        let score = 0;
+
+        // 点击事件处理
+        muyuContainer.addEventListener('click', (e) => {
+            // 1. 播放音效
+            // 克隆节点以允许快速连续点击时重叠播放声音
+            const soundClone = clickSound.cloneNode();
+            soundClone.volume = 0.5; // 可选：调整音量
+            soundClone.play().catch(err => console.log("Audio play failed:", err));
+
+            // 2. 更新分数
+            score++;
+            scoreDisplay.textContent = score;
+
+            // 3. 触发动画
+            triggerAnimations();
+
+            // 4. 生成漂浮文字
+            createFloatingText(e.clientX, e.clientY);
+        });
+
+        function triggerAnimations() {
+            // 木鱼放大
+            muyuImg.classList.add('muyu-active');
+            setTimeout(() => {
+                muyuImg.classList.remove('muyu-active');
+            }, 100);
+
+            // 锤子敲击
+            hammerImg.classList.add('hammer-active');
+            setTimeout(() => {
+                hammerImg.classList.remove('hammer-active');
+            }, 100);
+        }
+
+        function createFloatingText(x, y) {
+            const text = document.createElement('div');
+            text.className = 'floating-text';
+            text.textContent = '功德 +1';
+            
+            // 定位：基于点击位置或木鱼中心上方
+            // 这里我们让它出现在木鱼区域的中心上方，稍微随机一点X轴偏移更自然
+            const rect = muyuContainer.getBoundingClientRect();
+            const randomX = (Math.random() - 0.5) * 40; // 左右随机偏移
+            
+            text.style.left = (rect.left + rect.width / 2 + randomX) + 'px';
+            text.style.top = (rect.top) + 'px'; // 从木鱼顶部开始上浮
+
+            document.body.appendChild(text);
+
+            // 动画结束后移除元素
+            setTimeout(() => {
+                text.remove();
+            }, 400);
+        }
+    </script>
+</body>
+</html>
